@@ -102,20 +102,27 @@ const search = document.getElementById('search');
 const addBtn = document.getElementById('addBtn');
 let globalData = [];
 
-// Local fail-safe seeding rules
+// Local default fallback assets
 const localDefaults = [
     { name: "Brasil", city: "Brasília", code: "br", img: "image_82b4b2.jpg", url: "#", custom: false },
     { name: "Portugal", city: "Lisboa", code: "pt", img: "https://images.unsplash.com/photo-1509840841025-9088ba78a826?w=1200", url: "#", custom: false }
 ];
 
 async function loadWorkspaces() {
+    // Setup a 5-second forced timeout controller
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     try {
-        const res = await fetch('/api/workspaces');
-        if (!res.ok) throw new Error("HTTP-Status não favorável do servidor.");
+        const res = await fetch('/api/workspaces', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!res.ok) throw new Error("Servidor remoto retornou erro.");
         globalData = await res.json();
         render();
     } catch (err) {
-        console.warn("API offline ou não configurada. Ativando instâncias locais estruturadas:", err.message);
+        clearTimeout(timeoutId);
+        console.warn("API demorou muito ou falhou. Carregando dados locais de segurança:", err.message);
         globalData = localDefaults;
         render();
     }
